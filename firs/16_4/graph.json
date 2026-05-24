@@ -1,7 +1,6 @@
 {
     "node.description": "MacBook Pro T2 DSP Speakers",
     "media.name": "MacBook Pro T2 DSP Speakers",
-    "state.default-volume": 0.75,
     "filter.graph": {
         "nodes": [
             {
@@ -195,6 +194,7 @@
         "audio.allowed-rates": [48000, 44100],
         "node.virtual": "false",
         "priority.session": 1500,
+        "state.default-volume": 0.75,
         "device.icon-name": "audio-speakers"
     },
     "playback.props": {

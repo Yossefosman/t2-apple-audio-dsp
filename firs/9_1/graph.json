@@ -1,7 +1,6 @@
 {
     "node.description": "MacBook Air 9,1 Speakers",
     "media.name": "MacBook Air 9,1 Speakers",
-    "state.default-volume": 0.343,
     "filter.graph": {
         "nodes": [
             {
@@ -152,6 +151,7 @@
         "audio.allowed-rates": [48000, 44100],
         "node.virtual": "false",
         "priority.session": 1500,
+        "state.default-volume": 0.343,
         "device.icon-name": "audio-speakers"
     },
     "playback.props": {

@@ -1,12 +1,14 @@
 -- Force T2 raw audio devices to be unmuted at full volume
 -- This ensures the DSP has proper input/output levels
+-- Also initializes DSP sink volume to default on first appearance
 -- Based on Asahi Linux's asahi-limit-volume.lua
 
 local config = ... or {}
 
 seen_devices = {}
+dsp_sink_handled = {}
 
-function parseParam(param, id)
+local function parseParam(param, id)
   local route = param:parse()
   if route.pod_type == "Object" and route.object_id == id then
     return route.properties
@@ -15,7 +17,7 @@ function parseParam(param, id)
   end
 end
 
-function handleDevice(device)
+local function handleDevice(device)
   for p in device:iterate_params("Route") do
     local route = parseParam(p, "Route")
     if not route then
@@ -52,6 +54,43 @@ function handleDevice(device)
   end
 end
 
+local function setDspSinkVolume(node)
+  local vol = 0.75
+  local channelVols = { vol, vol }
+  table.insert(channelVols, 1, "Spa:Float")
+  local props = Pod.Object {
+    "Spa:Pod:Object:Param:Props", "Props",
+    volume = vol,
+    channelVolumes = Pod.Array(channelVols),
+  }
+  Log.info("Setting DSP sink volume to " .. tostring(vol))
+  node:set_param("Props", props)
+end
+
+local function onDspSinkParams(node)
+  if dsp_sink_handled[node["bound-id"]] then
+    return
+  end
+  for p in node:iterate_params("Props") do
+    local props = parseParam(p, "Props")
+    if props and props.volume then
+      if props.volume > 0.99 then
+        setDspSinkVolume(node)
+      else
+        dsp_sink_handled[node["bound-id"]] = true
+      end
+      break
+    end
+  end
+end
+
+local function handleDspSink(node)
+  if not dsp_sink_handled[node["bound-id"]] then
+    node:connect("params-changed", onDspSinkParams)
+    onDspSinkParams(node)
+  end
+end
+
 om = ObjectManager {
   Interest {
     type = "device",
@@ -74,3 +113,18 @@ end)
 
 om:activate()
 
+dsp_om = ObjectManager {
+  Interest {
+    type = "node",
+    Constraint { "media.class", "equals", "Audio/Sink" },
+    Constraint { "node.name", "equals", "audio_effect.t2-164-speakers" },
+  }
+}
+
+dsp_om:connect("objects-changed", function (om)
+  for node in om:iterate() do
+    handleDspSink(node)
+  end
+end)
+
+dsp_om:activate()
