@@ -1,0 +1,73 @@
+# SPDX-License-Identifier: MIT
+# (C) 2025 Linux T2 Kernel Team
+
+post_install() {
+  MODEL=$(cat /sys/class/dmi/id/product_name 2>/dev/null)
+
+  case "$MODEL" in
+    MacBookPro16,1) MODEL_DIR=16_1 ;;
+    MacBookPro16,4) MODEL_DIR=16_4 ;;
+    MacBookAir9,1)  MODEL_DIR=9_1  ;;
+    *)
+      echo "t2-apple-audio-dsp: unsupported model '${MODEL:-<unknown>}' — config not activated"
+      echo "  Supported models: MacBookPro16,1  MacBookPro16,4  MacBookAir9,1"
+      echo "  Data files are in /usr/share/t2-linux-audio/"
+      echo "  To activate manually, copy the matching *-dsp.conf to /etc/wireplumber/wireplumber.conf.d/"
+      return 0
+      ;;
+  esac
+
+  CONFIG_DIR="/usr/share/t2-apple-audio-dsp/config/${MODEL_DIR}"
+  AUDIO_DIR="/usr/share/t2-linux-audio/${MODEL_DIR}"
+
+  if [ ! -d "$CONFIG_DIR" ] || [ ! -d "$AUDIO_DIR" ]; then
+    echo "t2-apple-audio-dsp: package data missing for ${MODEL_DIR}, skipping"
+    return 0
+  fi
+
+  echo "t2-apple-audio-dsp: detected ${MODEL} (${MODEL_DIR})"
+
+  # Copy Wireplumber DSP config
+  mkdir -p /etc/wireplumber/wireplumber.conf.d
+  cp "${CONFIG_DIR}"/*-dsp.conf /etc/wireplumber/wireplumber.conf.d/
+  echo "  Wireplumber config: /etc/wireplumber/wireplumber.conf.d/"
+
+  # Create Lua script symlinks
+  if ls "${AUDIO_DIR}"/*.lua 2>/dev/null; then
+    mkdir -p /usr/share/wireplumber/scripts/device
+    for lua_file in "${AUDIO_DIR}"/*.lua; do
+      lua_basename=$(basename "$lua_file")
+      ln -sf "$lua_file" "/usr/share/wireplumber/scripts/device/${lua_basename}"
+      echo "  Lua symlink: /usr/share/wireplumber/scripts/device/${lua_basename}"
+    done
+  fi
+
+  # Clean up old PipeWire configs from previous versions
+  OLD_MODEL_ID=$(echo "$MODEL_DIR" | tr -d '_')
+  rm -f "/etc/pipewire/pipewire.conf.d/t2_${OLD_MODEL_ID}_speakers.conf"
+  rm -f "/etc/pipewire/pipewire.conf.d/t2_${OLD_MODEL_ID}_mic.conf"
+  rm -f /etc/pipewire/pipewire.conf.d/*-t2-dsp.conf
+
+  echo ""
+  echo "Installation complete! To apply, restart services:"
+  echo "  systemctl --user restart wireplumber pipewire pipewire-pulse"
+}
+
+post_upgrade() {
+  post_install
+}
+
+pre_remove() {
+  echo "t2-apple-audio-dsp: removing config and symlinks"
+
+  # Remove Wireplumber DSP config
+  rm -f /etc/wireplumber/wireplumber.conf.d/*-dsp.conf
+
+  # Remove Lua script symlinks
+  rm -f /usr/share/wireplumber/scripts/device/t2-force-unmute.lua
+}
+
+post_remove() {
+  echo "t2-apple-audio-dsp: uninstalled. To fully revert audio:"
+  echo "  systemctl --user restart wireplumber pipewire pipewire-pulse"
+}

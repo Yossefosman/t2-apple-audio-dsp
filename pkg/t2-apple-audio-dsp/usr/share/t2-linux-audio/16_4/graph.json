@@ -71,9 +71,9 @@
                 "name": "convLT",
                 "config": {
                     "filename": [
-                        "/usr/share/t2-linux-audio/16_1/tweeters-44k.wav",
-                        "/usr/share/t2-linux-audio/16_1/tweeters-48k.wav",
-                        "/usr/share/t2-linux-audio/16_1/tweeters-96k.wav"
+                        "/usr/share/t2-linux-audio/16_4/tweeters-44k.wav",
+                        "/usr/share/t2-linux-audio/16_4/tweeters-48k.wav",
+                        "/usr/share/t2-linux-audio/16_4/tweeters-96k.wav"
                     ],
                     "channel": 0,
                     "gain": 1.0
@@ -85,9 +85,9 @@
                 "name": "convRT",
                 "config": {
                     "filename": [
-                        "/usr/share/t2-linux-audio/16_1/tweeters-44k.wav",
-                        "/usr/share/t2-linux-audio/16_1/tweeters-48k.wav",
-                        "/usr/share/t2-linux-audio/16_1/tweeters-96k.wav"
+                        "/usr/share/t2-linux-audio/16_4/tweeters-44k.wav",
+                        "/usr/share/t2-linux-audio/16_4/tweeters-48k.wav",
+                        "/usr/share/t2-linux-audio/16_4/tweeters-96k.wav"
                     ],
                     "channel": 0,
                     "gain": 1.0
@@ -99,9 +99,9 @@
                 "name": "convLW",
                 "config": {
                     "filename": [
-                        "/usr/share/t2-linux-audio/16_1/woofers-44k.wav",
-                        "/usr/share/t2-linux-audio/16_1/woofers-48k.wav",
-                        "/usr/share/t2-linux-audio/16_1/woofers-96k.wav"
+                        "/usr/share/t2-linux-audio/16_4/woofers-44k.wav",
+                        "/usr/share/t2-linux-audio/16_4/woofers-48k.wav",
+                        "/usr/share/t2-linux-audio/16_4/woofers-96k.wav"
                     ],
                     "channel": 0,
                     "gain": 1.0
@@ -113,9 +113,9 @@
                 "name": "convRW",
                 "config": {
                     "filename": [
-                        "/usr/share/t2-linux-audio/16_1/woofers-44k.wav",
-                        "/usr/share/t2-linux-audio/16_1/woofers-48k.wav",
-                        "/usr/share/t2-linux-audio/16_1/woofers-96k.wav"
+                        "/usr/share/t2-linux-audio/16_4/woofers-44k.wav",
+                        "/usr/share/t2-linux-audio/16_4/woofers-48k.wav",
+                        "/usr/share/t2-linux-audio/16_4/woofers-96k.wav"
                     ],
                     "channel": 0,
                     "gain": 1.0
@@ -169,10 +169,24 @@
             "RW:Out",
             "RW2:Out",
             "convRT:Out"
+        ],
+        "capture.volumes": [
+            {
+                "control": "ell:volume",
+                "min": -65.0,
+                "max": 0.0,
+                "scale": "cubic"
+            },
+            {
+                "control": "elr:volume",
+                "min": -65.0,
+                "max": 0.0,
+                "scale": "cubic"
+            }
         ]
     },
     "capture.props": {
-        "node.name": "audio_effect.t2-161-speakers",
+        "node.name": "audio_effect.t2-164-speakers",
         "media.class": "Audio/Sink",
         "audio.channels": "2",
         "audio.position": ["FL", "FR"],
@@ -184,7 +198,7 @@
         "device.icon-name": "audio-speakers"
     },
     "playback.props": {
-        "node.name": "effect_output.t2-161-speakers",
+        "node.name": "effect_output.t2-164-speakers",
         "node.description": "MacBook Pro T2 DSP Speakers Out",
         "media.name": "MacBook Pro T2 DSP Speakers Out",
         "target.object": "alsa_output.pci-0000_04_00.3.Speakers",
