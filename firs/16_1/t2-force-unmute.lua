@@ -7,6 +7,7 @@ local config = ... or {}
 
 seen_devices = {}
 dsp_sink_handled = {}
+setting_volume = false
 
 local function parseParam(param, id)
   local route = param:parse()
@@ -24,7 +25,6 @@ local function handleDevice(device)
       goto skip_route
     end
 
-    -- Handle both Speakers and BuiltinMic/Digital Mic
     local desc = route.description
     if desc ~= "Speakers" and desc ~= "Speaker" and desc ~= "BuiltinMic" and desc ~= "Digital Mic" then
       goto skip_route
@@ -57,6 +57,10 @@ end
 local default_vol = 0.75
 
 local function setDspSinkVolume(node)
+  if setting_volume then
+    return
+  end
+  setting_volume = true
   local channelVols = { default_vol, default_vol }
   table.insert(channelVols, 1, "Spa:Float")
   local props = Pod.Object {
@@ -66,34 +70,31 @@ local function setDspSinkVolume(node)
   }
   Log.info("Setting DSP sink volume to " .. tostring(default_vol))
   node:set_param("Props", props)
+  setting_volume = false
 end
 
-local function checkAndSetVolume(node)
+local function onDspSinkParams(node)
+  if dsp_sink_handled[node["bound-id"]] then
+    return
+  end
+  if setting_volume then
+    return
+  end
   for p in node:iterate_params("Props") do
     local props = parseParam(p, "Props")
     if props then
       local vol = props.volume
       Log.info("DSP sink Props: volume=" .. tostring(vol) .. " handled=" .. tostring(dsp_sink_handled[node["bound-id"]]))
-      if dsp_sink_handled[node["bound-id"]] then
-        return true
-      end
       if vol == nil or vol > 0.99 then
         Log.info("DSP sink volume at max or unset (" .. tostring(vol) .. "), setting to " .. tostring(default_vol))
         setDspSinkVolume(node)
-        return false
       else
         Log.info("DSP sink volume already set to " .. tostring(vol) .. ", marking handled")
         dsp_sink_handled[node["bound-id"]] = true
-        return true
       end
+      break
     end
   end
-  return nil
-end
-
-local function onDspSinkParams(node)
-  local result = checkAndSetVolume(node)
-  -- If Props wasn't available yet, we'll try again on next params-changed
 end
 
 local function handleDspSink(node)
@@ -101,8 +102,7 @@ local function handleDspSink(node)
     return
   end
   node:connect("params-changed", onDspSinkParams)
-  -- Also try to set immediately if possible
-  checkAndSetVolume(node)
+  onDspSinkParams(node)
 end
 
 om = ObjectManager {
