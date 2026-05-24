@@ -1,1 +1,4 @@
-*.code-workspace
+*.pkg.tar.zst
+pkg/
+PKGBUILD
+t2-apple-audio-dsp.install
