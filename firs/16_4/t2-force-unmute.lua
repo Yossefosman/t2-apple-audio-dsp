@@ -1,15 +1,12 @@
 -- Force T2 raw audio devices to be unmuted at full volume
 -- This ensures the DSP has proper input/output levels
--- Also initializes DSP sink volume to default on first appearance
 -- Based on Asahi Linux's asahi-limit-volume.lua
 
 local config = ... or {}
 
 seen_devices = {}
-dsp_sink_handled = {}
-setting_volume = false
 
-local function parseParam(param, id)
+function parseParam(param, id)
   local route = param:parse()
   if route.pod_type == "Object" and route.object_id == id then
     return route.properties
@@ -18,13 +15,14 @@ local function parseParam(param, id)
   end
 end
 
-local function handleDevice(device)
+function handleDevice(device)
   for p in device:iterate_params("Route") do
     local route = parseParam(p, "Route")
     if not route then
       goto skip_route
     end
 
+    -- Handle both Speakers and BuiltinMic/Digital Mic
     local desc = route.description
     if desc ~= "Speakers" and desc ~= "Speaker" and desc ~= "BuiltinMic" and desc ~= "Digital Mic" then
       goto skip_route
@@ -54,57 +52,6 @@ local function handleDevice(device)
   end
 end
 
-local default_vol = 0.75
-
-local function setDspSinkVolume(node)
-  if setting_volume then
-    return
-  end
-  setting_volume = true
-  local channelVols = { default_vol, default_vol }
-  table.insert(channelVols, 1, "Spa:Float")
-  local props = Pod.Object {
-    "Spa:Pod:Object:Param:Props", "Props",
-    volume = default_vol,
-    channelVolumes = Pod.Array(channelVols),
-  }
-  Log.info("Setting DSP sink volume to " .. tostring(default_vol))
-  node:set_param("Props", props)
-  setting_volume = false
-end
-
-local function onDspSinkParams(node)
-  if dsp_sink_handled[node["bound-id"]] then
-    return
-  end
-  if setting_volume then
-    return
-  end
-  for p in node:iterate_params("Props") do
-    local props = parseParam(p, "Props")
-    if props then
-      local vol = props.volume
-      Log.info("DSP sink Props: volume=" .. tostring(vol) .. " handled=" .. tostring(dsp_sink_handled[node["bound-id"]]))
-      if vol == nil or vol > 0.99 then
-        Log.info("DSP sink volume at max or unset (" .. tostring(vol) .. "), setting to " .. tostring(default_vol))
-        setDspSinkVolume(node)
-      else
-        Log.info("DSP sink volume already set to " .. tostring(vol) .. ", marking handled")
-        dsp_sink_handled[node["bound-id"]] = true
-      end
-      break
-    end
-  end
-end
-
-local function handleDspSink(node)
-  if dsp_sink_handled[node["bound-id"]] then
-    return
-  end
-  node:connect("params-changed", onDspSinkParams)
-  onDspSinkParams(node)
-end
-
 om = ObjectManager {
   Interest {
     type = "device",
@@ -127,18 +74,3 @@ end)
 
 om:activate()
 
-dsp_om = ObjectManager {
-  Interest {
-    type = "node",
-    Constraint { "media.class", "equals", "Audio/Sink" },
-    Constraint { "node.name", "equals", "audio_effect.t2-164-speakers" },
-  }
-}
-
-dsp_om:connect("objects-changed", function (om)
-  for node in om:iterate() do
-    handleDspSink(node)
-  end
-end)
-
-dsp_om:activate()
