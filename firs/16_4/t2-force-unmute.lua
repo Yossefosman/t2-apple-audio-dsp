@@ -54,41 +54,53 @@ local function handleDevice(device)
   end
 end
 
+local default_vol = 0.75
+
 local function setDspSinkVolume(node)
-  local vol = 0.75
-  local channelVols = { vol, vol }
+  local channelVols = { default_vol, default_vol }
   table.insert(channelVols, 1, "Spa:Float")
   local props = Pod.Object {
     "Spa:Pod:Object:Param:Props", "Props",
-    volume = vol,
+    volume = default_vol,
     channelVolumes = Pod.Array(channelVols),
   }
-  Log.info("Setting DSP sink volume to " .. tostring(vol))
+  Log.info("Setting DSP sink volume to " .. tostring(default_vol))
   node:set_param("Props", props)
 end
 
-local function onDspSinkParams(node)
-  if dsp_sink_handled[node["bound-id"]] then
-    return
-  end
+local function checkAndSetVolume(node)
   for p in node:iterate_params("Props") do
     local props = parseParam(p, "Props")
-    if props and props.volume then
-      if props.volume > 0.99 then
-        setDspSinkVolume(node)
-      else
-        dsp_sink_handled[node["bound-id"]] = true
+    if props then
+      local vol = props.volume
+      Log.info("DSP sink Props: volume=" .. tostring(vol) .. " handled=" .. tostring(dsp_sink_handled[node["bound-id"]]))
+      if dsp_sink_handled[node["bound-id"]] then
+        return true
       end
-      break
+      if vol == nil or vol > 0.99 then
+        Log.info("DSP sink volume at max or unset (" .. tostring(vol) .. "), setting to " .. tostring(default_vol))
+        setDspSinkVolume(node)
+        return false
+      else
+        Log.info("DSP sink volume already set to " .. tostring(vol) .. ", marking handled")
+        dsp_sink_handled[node["bound-id"]] = true
+        return true
+      end
     end
   end
+  return nil
+end
+
+local function onDspSinkParams(node)
+  checkAndSetVolume(node)
 end
 
 local function handleDspSink(node)
-  if not dsp_sink_handled[node["bound-id"]] then
-    node:connect("params-changed", onDspSinkParams)
-    onDspSinkParams(node)
+  if dsp_sink_handled[node["bound-id"]] then
+    return
   end
+  node:connect("params-changed", onDspSinkParams)
+  checkAndSetVolume(node)
 end
 
 om = ObjectManager {
