@@ -8,7 +8,7 @@
 # Or adapt for AUR by pointing source at a release tarball.
 
 pkgname=t2-apple-audio-dsp
-pkgver=1.0.1
+pkgver=1.0.2
 pkgrel=1
 pkgdesc="Pipewire/Wireplumber userspace audio DSP configuration for Apple T2 Macs"
 arch=('any')
