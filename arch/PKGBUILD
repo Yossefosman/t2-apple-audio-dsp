@@ -9,7 +9,7 @@
 
 pkgname=t2-apple-audio-dsp
 pkgver=1.0.2
-pkgrel=1
+pkgrel=2
 pkgdesc="Pipewire/Wireplumber userspace audio DSP configuration for Apple T2 Macs"
 arch=('any')
 url="https://github.com/lemmyg/t2-apple-audio-dsp"
@@ -19,8 +19,10 @@ depends=(
   'wireplumber'
   'lsp-plugins-lv2'
   'swh-lv2'
-  'bankstown-lv2'
-  'triforce-lv2'
+)
+optdepends=(
+  'bankstown-lv2: Virtual bass plugin (install manually from AUR)'
+  'triforce-lv2: Virtual bass plugin (install manually from AUR)'
 )
 makedepends=()
 install="${pkgname}.install"
